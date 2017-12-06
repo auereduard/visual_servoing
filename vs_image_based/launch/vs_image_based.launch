@@ -1,0 +1,310 @@
+<?xml version="1.0"?>
+<launch>
+<!-- *****************************************************************-->
+<!-- **********   Parameter für die Kamera und das Objekt   **********-->
+<!-- *****************************************************************-->
+<!--
+
+"camera_frame_id":
+Der Parameter kann beliebig gewählt werden.
+Standrardwert für die Kamera: "gripper_camera". 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"object_id":
+Objekt-ID ist abhängig von dem verwendeten AR-Tag-Bild und 
+kann mit dem Tool "rqt_tf_tree" herausgefunden werden.
+Dazu im Terminal: ~$ rqt
+Dann im geöffneten Fenster unter Plugins -> Visualization -> TF Tree
+Objekt-ID ist das Frame, das nach Kamera-Frame kommt (Broadcaster: /ar_track_alvar).
+Nodes für die Kamera und AR-Tag müssen dabei aktiv sein und
+das AR-Tag-Bild muss sichtbar sein.
+Standardwert für das Objekt: "ar_marker_8". 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"frequency": 
+Die Frequenz, mit der die Kameradaten in tf aktualisiert werden.
+Diese Frequenz kann mit dem Tool "rqt" herausgefunden werden.
+Dazu im Terminal: ~$ rqt
+Dann im geöffneten Fenster unter Plugins -> Visualization -> TF Tree
+Die Frequenz ist unter "Average rate" zu finden.
+Diesen Wert sollte man auf eine ganze Zahl abrunden. 
+
+-->
+
+<!-- alle vorhandenen Parameter in "start_vs_image_based" entfernen -->
+<rosparam command="delete" param="start_vs_image_based" />
+
+<arg name="camera_frame_id" default="gripper_camera" />
+<arg name="frequency" default="8" />
+<!-- ****************************************************** -->
+
+
+
+
+
+<!-- *****************************************************-->
+<!-- **********   Node für die Kamera starten   **********-->
+<!-- *****************************************************-->
+<node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
+    <param name="video_device" value="/dev/video0" />
+    <param name="image_width" value="640" />
+    <param name="image_height" value="480" />
+    <param name="pixel_format" value="yuyv" />
+    <param name="camera_frame_id" type="string" value="$(arg camera_frame_id)" />
+    <param name="io_method" value="mmap"/>
+  </node>
+<!-- ****************************************************** -->
+
+
+
+
+
+<!-- ************************************************************-->
+<!-- **********   Fenster mit den Kamerabild starten   **********-->
+<!-- ************************************************************-->
+<node name="image_view" pkg="image_view" type="image_view" respawn="false" output="screen">
+    <remap from="image" to="/usb_cam/image_raw"/>
+    <param name="autosize" value="true" />
+  </node>
+<!-- ****************************************************** -->
+
+
+
+
+
+<!-- ********************************************************************-->
+<!-- **********   Node für die Erkennung von AR-Tags starten   **********-->
+<!-- ********************************************************************-->
+<arg name="marker_size" default="3.0" />
+	<arg name="max_new_marker_error" default="0.08" />
+	<arg name="max_track_error" default="0.2" />
+
+	<arg name="cam_image_topic" default="/usb_cam/image_raw" />
+	<arg name="cam_info_topic" default="/usb_cam/camera_info" />
+
+	<node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen">
+		<param name="marker_size"           type="double" value="$(arg marker_size)" />
+		<param name="max_new_marker_error"  type="double" value="$(arg max_new_marker_error)" />
+		<param name="max_track_error"       type="double" value="$(arg max_track_error)" />
+		<param name="output_frame"          type="string" value="$(arg camera_frame_id)" />
+
+		<remap from="camera_image"  to="$(arg cam_image_topic)" />
+		<remap from="camera_info"   to="$(arg cam_info_topic)" />
+	</node>
+
+	<!-- link gripper camera to gripper for tf -->	
+	<node pkg="tf" type="static_transform_publisher" name="gripper_camera_broadcaster" args="0.05 0.0 -0.045 1.5708 0 -0.52 m1n6s200_end_effector $(arg camera_frame_id) 100" />
+<!-- ****************************************************** -->
+
+
+
+
+
+<!-- ********************************************************-->
+<!-- **********   Visualisierung in Rviz starten   **********-->
+<!-- ********************************************************-->
+  <param name="robot_type" value="m1n6s200" />
+  <param name="/pick_place_demo/arm/solve_type" value="Manipulation2" />
+  <param name="/pick_place_demo/arm/kinematics_solver_timeout" value="0.05" />
+
+  <!-- By default, we do not start a database (it can be large) -->
+  <arg name="db" default="false" />
+  <!-- Allow user to specify database location -->
+  <arg name="db_path" default="$(find m1n6s200_moveit_config)/default_warehouse_mongo_db" />
+
+  <!-- By default, we are not in debug mode -->
+  <arg name="debug" default="false" />
+
+  <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
+  <include file="$(find m1n6s200_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+  </include>
+
+  <!-- If needed, broadcast static tf for robot root -->
+  
+  <!-- Run joint trajectory action server, which receives planned motion goal under "follow_joint_trajectory", and publish ROS standard trajectory via topic "command". Then for specified robot, the trajectory will be interpreted to their own joint trajectory controller -->
+  <node name="m1n6s200_joint_trajectory_action_server" pkg="kinova_driver" type="joint_trajectory_action_server" output="screen" respawn="false" args="m1n6s200"/>
+
+  <!-- Run gripper command action server, which receives planned motion goal under "gripper_command". After receiving the command from Moveit Rviz Plugin, this node act as an actionlib client and send the goal to the finger position action server from kinova_driver.  -->
+  <node name="m1n6s200_gripper_command_action_server" pkg="kinova_driver" type="gripper_command_action_server" output="screen" respawn="false" args="m1n6s200"/>
+
+
+  <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
+  <include file="$(find m1n6s200_moveit_config)/launch/move_group_m1n6s200.launch">
+    <arg name="allow_trajectory_execution" value="true"/>
+    <arg name="fake_execution" value="false"/>
+    <arg name="info" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+    <arg name="joint_states_ns" value="/m1n6s200_driver/out/joint_state"/> 
+    <arg name="controller_manager" value="m1n6s200"/> 
+  </include>
+
+  <!-- kinova-driver Controller parameters-->   
+  <rosparam file="$(find m1n6s200_moveit_config)/config/controllers.yaml"/> 
+
+  <!-- Run Rviz and load the default config to see the state of the move_group node -->
+  <include file="$(find m1n6s200_moveit_config)/launch/moveit_rviz.launch">
+    <arg name="config" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+  <!-- If database loading was enabled, start mongodb as well -->
+  <include file="$(find m1n6s200_moveit_config)/launch/default_warehouse_db.launch" if="$(arg db)">
+    <arg name="moveit_warehouse_database_path" value="$(arg db_path)"/>
+  </include>
+<!-- ****************************************************** -->
+
+
+
+
+
+<!-- **************************************************************-->
+<!-- **********   Node für das Visual Servoing starten   **********-->	
+<!-- **************************************************************-->
+
+	<node name="start_vs_image_based" pkg="vs_image_based" type="start_vs_image_based" output="screen">
+
+<!-- ************************************************************* --> 
+<!-- *		W I C H T I G E   P A R A M E T E R 		 * --> 
+<!-- ************************************************************* --> 
+
+<!-- *************************************************************
+
+"robot_basis_angle": 
+Das ist der Winkel, um den der Roboter-Link-1 
+(Link zwischen der Roboterbasis und dem Gelenk 1) bezüglich des mobilen Plattform gedreht ist. Standardwert ist 35.8. 
+Der Winkel ergibt sich durch die Rotation um die x-Achse des 
+Basis-Koorditatensystem des Mico-Roboters in positive Richtung.
+Wenn Roboter auf dem Tisch montiert ist -> Winkel ist 0. 	
+	 
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"camera_angle": 
+Kamerawinkel auf dem Greifer. Nur Rotation um die x-Achse.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"control_precision": 
+Toleranzbereich für die lineare Abweichungen
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"control_angle_precision": 
+Toleranzbereich für Abweichungen in der Orientierung
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"connect_xyz": 
+Bei einer Abweichung in x- oder y- Richtung 
+bewegt sich der Greiger auch immer nach oben, 
+um das Blickfeld zu vergrößern und das Objekt nicht zu verlieren.
+Bei 0 wird diese Funktion deaktiviert.
+Werte sollten nicht so groß gewählt werden. 
+Optimaler Wert ist 2.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"object_length", "object_width", "object_height":
+Dimensionen des quaderförmigen Objektes eingeben
+Einheiten sind mm
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"timer1_value":
+Wartezeit, nachdem alle linearen Abweichungen ausgeregelt sind.
+Einheit: ms 
+einstellbare Intervale: 10ms
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"timer2_value":
+Wartezeit, wenn der Greifer sich zum Objekt bewegt hat.
+Einheit: ms 
+einstellbare Intervale: 10ms
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"error1_value":
+Maximal erlaubte Zeit für die Objektverfolgung. 
+Wenn die Zeit vergangen ist, wird das Visual Servoing mit dem Fehlercode 2 verlassen.
+Einheit: ms 
+einstellbare Intervale: 10ms
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"error2_value":
+Maximal erlaubte Zeit für die Rotation um 90° nach der Objektverfolgung.
+Wird nur dann verwendet, wenn eine Rotation notwendig ist.
+Wenn die Zeit vergangen ist, wird das Visual Servoing mit dem Fehlercode 3 verlassen.
+Einheit: ms 
+einstellbare Intervale: 10ms
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"error3_value":
+Maximal erlaubte Zeit für die Bewegung zum Objekt.
+Wenn die Zeit vergangen ist, wird das Visual Servoing mit dem Fehlercode 4 verlassen.
+Einheit: ms 
+einstellbare Intervale: 10ms
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"error4_value":
+Maximal erlaubte Zeit für die Greiferbeweung mit dem Objekt.
+Wenn die Zeit vergangen ist, wird das Visual Servoing mit dem Fehlercode 5 verlassen.
+Einheit: ms 
+einstellbare Intervale: 10ms
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+"enable_check_collision":
+Dieser Wert sollte 0 oder 1 sein. Bei 0 ist die Kollisionserkennnung deaktiviert. 
+Wenn der Manipulator sich auf der mobilen Plattform befindet, sollte dieser Wert 1 sein.
+
+************************************************************* -->
+        <rosparam command="load" file="$(find vs_image_based)/param/object_parameter.yaml"/>	
+        <param name="frequency" value ="$(arg frequency)"/>	
+	<param name="robot_basis_angle" value="0"/>
+	<param name="camera_angle" value="-30" />	
+	<param name="control_precision" value="0.003"/>
+	<param name="control_angle_precision" value="2"/>
+	<param name="connect_xyz" value="1.5"/>
+
+	<param name="object_length" value="200"/>
+	<param name="object_width" value="100"/>
+	<param name="object_height" value="39"/>
+	
+	<param name="timer1_value" value="30"/>       
+	<param name="timer2_value" value="50"/>
+
+        <param name="error1_value" value="20000"/>
+        <param name="error2_value" value="10000"/>
+	<param name="error3_value" value="10000"/>        	
+        
+	<param name="enable_check_collision" value="0"/>
+	
+  </node>
+<!-- ****************************************************** -->
+
+
+
+
+
+<!-- ******************************************************-->
+<!-- **********   Node mit Kameradaten starten   **********-->
+<!-- ******************************************************-->	
+<!-- 
+Kameradaten, die in tf vorhanden sind, werden damit in ein topic gesendet.
+Die notwendigen Parameter sollten ganz oben 
+in dieser launch-Datei definiert werden (Abschnitt: "Parameter für die Kamera und das Objekt"). -->
+	
+  <node name="receive_camera_data" pkg="cam_data_from_tf" type="receive_camera_data" output="screen">
+	<param name="camera_frame_id" type="string" value="$(arg camera_frame_id)" />	
+        <param name="frequency" value ="$(arg frequency)"/>
+        <rosparam command="load" file="$(find vs_image_based)/param/object_parameter.yaml"/>
+        
+</node>
+<!-- ****************************************************** -->
+</launch>

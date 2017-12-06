@@ -1,0 +1,8 @@
+# Goal
+string object_type
+---
+# Result
+int8 r
+---
+# Feedback message
+float64 f
