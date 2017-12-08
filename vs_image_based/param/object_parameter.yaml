@@ -1,5 +1,5 @@
 ar_marker_8: {
-reference_values: [0, 0, 0.11, 0, 0, -90],
+reference_values: [0, 0, 0.11, 0, 0, 0],
 grasp_distance: 100,
 move_tcp: [0, 0, 0.038]
 }
@@ -11,7 +11,7 @@ move_tcp: [0, -0.02, 0.04]
 }
 
 ar_marker_1: {
-reference_values: [0, 0, 0.11, 0, 0, 0],
+reference_values: [0.0, 0, 0.11, 0, 0, 0],
 grasp_distance: 100,
 move_tcp: [0, -0.02, 0.04]
 }
@@ -40,3 +40,20 @@ grasp_distance: 100,
 move_tcp: [0, -0.02, 0.03]
 }
 
+ar_marker_1a: {
+reference_values: [0.02, 0, 0.11, 0, 0, 0],
+grasp_distance: 100,
+move_tcp: [0, -0.02, 0.03]
+}
+
+ar_marker_1b: {
+reference_values: [0.0, 0.02, 0.11, 0, 0, 0],
+grasp_distance: 100,
+move_tcp: [0, -0.02, 0.03]
+}
+
+ar_marker_1c: {
+reference_values: [0.0, -0.01, 0.15, 0, 0, 0],
+grasp_distance: 100,
+move_tcp: [0, -0.02, 0.03]
+}

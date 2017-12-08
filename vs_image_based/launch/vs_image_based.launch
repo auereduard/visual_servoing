@@ -35,6 +35,7 @@ Diesen Wert sollte man auf eine ganze Zahl abrunden.
 
 <!-- alle vorhandenen Parameter in "start_vs_image_based" entfernen -->
 <rosparam command="delete" param="start_vs_image_based" />
+<rosparam command="delete" param="receive_camera_data" />
 
 <arg name="camera_frame_id" default="gripper_camera" />
 <arg name="frequency" default="8" />
@@ -174,7 +175,7 @@ Diesen Wert sollte man auf eine ganze Zahl abrunden.
 
 "robot_basis_angle": 
 Das ist der Winkel, um den der Roboter-Link-1 
-(Link zwischen der Roboterbasis und dem Gelenk 1) bezüglich des mobilen Plattform gedreht ist. Standardwert ist 35.8. 
+(Link zwischen der Roboterbasis und dem Gelenk 1) bezüglich des mobilen Plattform gedreht ist. Standardwert ist 35.8°. 
 Der Winkel ergibt sich durch die Rotation um die x-Achse des 
 Basis-Koorditatensystem des Mico-Roboters in positive Richtung.
 Wenn Roboter auf dem Tisch montiert ist -> Winkel ist 0. 	
@@ -270,7 +271,7 @@ Wenn der Manipulator sich auf der mobilen Plattform befindet, sollte dieser Wert
 	<param name="camera_angle" value="-30" />	
 	<param name="control_precision" value="0.003"/>
 	<param name="control_angle_precision" value="2"/>
-	<param name="connect_xyz" value="1.5"/>
+	<param name="connect_xyz" value="1.5"/> <!--1.5-->
 
 	<param name="object_length" value="200"/>
 	<param name="object_width" value="100"/>
@@ -283,7 +284,7 @@ Wenn der Manipulator sich auf der mobilen Plattform befindet, sollte dieser Wert
         <param name="error2_value" value="10000"/>
 	<param name="error3_value" value="10000"/>        	
         
-	<param name="enable_check_collision" value="0"/>
+	<param name="enable_check_collision" value="1"/>
 	
   </node>
 <!-- ****************************************************** -->

@@ -60,6 +60,7 @@ int VisualServoing::start_VS(string type){
     //Greifer vollständig öffnen
     move_fingers(finger_client, 0);
 
+    //Objekt_ID zum Node "receive_camera_data" gesendet.
     str_msg.data = type;
     id_pub.publish(str_msg);
 
@@ -78,16 +79,16 @@ int VisualServoing::start_VS(string type){
         //Regelschleife nur dann durchlaufen, wenn die Daten angekommen sind
         if(camera_data_received){
     	    //Berechnung der Abweichung
-            e.x = reference_tracking.x - object_pose.x;
-            e.y = reference_tracking.y - object_pose.y;
+            e.x = 0.0 - object_pose.x;
+            e.y = 0.0 - object_pose.y;
             if(abs(e.x) < 0.04 && abs(e.y) < 0.04){
-                if(object_pose.z <= 0.2)e.z = reference_tracking.z - object_pose.z + connect_xyz*abs(object_pose.x) + connect_xyz*abs(object_pose.y);
-                else e.z = reference_tracking.z - object_pose.z;
+                if(object_pose.z <= 0.2)e.z = 0.0 - object_pose.z + connect_xyz*abs(e.x) + connect_xyz*abs(e.y);
+                else e.z = 0.0 - object_pose.z;
             }else{e.z = 0.0;}
 
-            e.rot_x = 0 - object_pose.rot_x;
-            e.rot_y = 0 - object_pose.rot_y;
-            e.rot_z = 0 - object_pose.rot_z;
+            e.rot_x = 0.0 - object_pose.rot_x;
+            e.rot_y = 0.0 - object_pose.rot_y;
+            e.rot_z = 0.0 - object_pose.rot_z;
 
             //Berechnung der Abweichung im Basis-KS
             VEKTOR_cam_data.setValue(e.x,e.y,e.z);
@@ -107,8 +108,6 @@ int VisualServoing::start_VS(string type){
             u.rot_x = pd_tracking_rot_x.calc(e.rot_x);
             u.rot_y = pd_tracking_rot_y.calc(e.rot_y);
             u.rot_z = pd_tracking_rot_z.calc(e.rot_z);
-
-            camera_data_received = false;
         }
         //Berechnung der Ansteuerung für PD-Regler in einem Toleranzbereich
     	if(Ki_linear == 0){
@@ -121,12 +120,15 @@ int VisualServoing::start_VS(string type){
     	pose_vel_msg.twist_linear_z = u.z;
     	}
 
-    	//Ansteuerung für die Orientierung: Reihehnfolge beachten
-
+    	/*	Ansteuerung für die Orientierung: Reihehnfolge beachten
+    	 	Orientierung wird nur dann geregelt, wenn die Abweichungen in x und y Richtung
+    	 	kleiner als 0.04m sind.
+    	 	Zuerst wird z-Orientierung geregelt. Wenn die Abweichung kleiner als 10° beträgt,
+    	 	werden auch x- und y-Orientierungen geregelt.
+    	 	  */
     	if(abs(e.x) < 0.04 && abs(e.y) < 0.04){
 
     	    pose_vel_msg.twist_angular_z = u.rot_z = calc_control_speed(u.rot_z, e.rot_z,min_angle_speed,control_angle_precision);
-    	    //u.rot_z = -pose_vel_msg.twist_angular_z;
 
     	if(abs(e.rot_z)  < 10){
 
@@ -139,9 +141,9 @@ int VisualServoing::start_VS(string type){
         }
 
        	}else{
-    	pose_vel_msg.twist_angular_x = u.rot_x = 0.0;
-    	pose_vel_msg.twist_angular_y = u.rot_y = 0.0;
-    	pose_vel_msg.twist_angular_z = u.rot_z = 0.0;
+       		pose_vel_msg.twist_angular_x = u.rot_x = 0.0;
+       		pose_vel_msg.twist_angular_y = u.rot_y = 0.0;
+       		pose_vel_msg.twist_angular_z = u.rot_z = 0.0;
     	}
     	//Wenn objekt nicht sichbar, Bewegungen anhalten
     	if(!object_visible){
@@ -260,10 +262,12 @@ int VisualServoing::start_VS(string type){
     	//Ansteuerwerte an den Roboter senden
     	pose_vel_pub.publish(pose_vel_msg);
 
+    	if(camera_data_received && erg == 0){
 
-    	//printf("e.x = %7.4f   e.y = %7.4f   e.z = %7.4f  ||  e.rox_x = %5.1f   e._rot_y = %5.1f   e.rot_z = %5.1f\n",e.x,e.y,e.z,e.rot_x,e.rot_y,e.rot_z);
-    	//printf("u.x = %7.4f   u.y = %7.4f   u.z = %7.4f  ||  u.rox_x = %5.1f   u._rot_y = %5.1f   u.rot_z = %5.1f\n\n",u.x,u.y,u.z,u.rot_x,u.rot_y,u.rot_z);
+    		printf("e.x = %7.4f   e.y = %7.4f   e.z = %7.4f  ||  e.rox_x = %4.1f   e._rot_y = %4.1f   e.rot_z = %4.1f\n",e.x,e.y,e.z,e.rot_x,e.rot_y,e.rot_z);
+    		printf("u.x = %7.4f   u.y = %7.4f   u.z = %7.4f  ||  u.rox_x = %4.1f   u._rot_y = %4.1f   u.rot_z = %4.1f\n\n",u.x,u.y,u.z,u.rot_x,u.rot_y,u.rot_z);
 
+    	}
 
     	/*Timer 1 starten, wenn keine lineare Ansteuerung vorliegt.
     	 * Die Wartezeit kann in dem Launch-File geändert werden.
@@ -282,6 +286,7 @@ int VisualServoing::start_VS(string type){
     	//Wenn nach error1_value-Sekunden nicht ausgeregelt -> Verlassen mit Fehlercode 2
     	if(counter2 >= error1_value) return 2;
 
+    	camera_data_received = false;
     	ros::spinOnce();
     	rate.sleep();
     }
@@ -431,7 +436,7 @@ void VisualServoing::init_VisualServoing(string type){
 	pn.getParam(type + "/move_tcp", reference_values_tcp);
 	reference_tracking.x = reference_values_tracking.data()[0];
 	reference_tracking.y = reference_values_tracking.data()[1];
-	reference_tracking.z = reference_values_tracking.data()[2];
+	reference_tracking.z = abs(reference_values_tracking.data()[2]);
 	reference_tracking.rot_x = -reference_values_tracking.data()[3];
 	reference_tracking.rot_y = reference_values_tracking.data()[4];
 	reference_tracking.rot_z = -reference_values_tracking.data()[5];
@@ -485,7 +490,7 @@ void VisualServoing::init_VisualServoing(string type){
 	planes[6].c = 0;        planes[6].z_min = 0.23;                 planes[6].z_max = 0.8;
 	planes[6].d = 0.01;
 //Ebene 8
-	planes[7].a = 1;       planes[7].x_min = 0.01;                planes[7].x_max = 0.01;
+	planes[7].a = -1;       planes[7].x_min = -0.01;                planes[7].x_max = -0.01;
 	planes[7].b = 0;        planes[7].y_min = 0.01;                 planes[7].y_max = 0.37;
 	planes[7].c = 0;        planes[7].z_min = 0.12;                 planes[7].z_max = 0.8;
 	planes[7].d = 0.01;
@@ -582,9 +587,9 @@ int VisualServoing::check_collision(){
 		point2 = rotation_x * point2;
 
 		direction_vector = point2 - point1;
-		cout << "-----------------------------------------------------------------------"<<endl;
-		printf("i:%d   P1: %f  %f  %f   P2: %f  %f  %f\n",i,point1(0),point1(1),point1(2),point2(0),point2(1),point2(2));
-		cout << "-----------------------------------------------------------------------"<<endl;
+		//cout << "-----------------------------------------------------------------------"<<endl;
+		//printf("i:%d   P1: %f  %f  %f   P2: %f  %f  %f\n",i,point1(0),point1(1),point1(2),point2(0),point2(1),point2(2));
+		//cout << "-----------------------------------------------------------------------"<<endl;
 
 		for(int j = 0; j < 9; j++){
 
@@ -599,7 +604,7 @@ int VisualServoing::check_collision(){
 			    intersection_point(2) = rnd(intersection_point(2),4);
 
 
-			    printf("j:%d   t: %f   S: %f  %f  %f\n",j,t,intersection_point(0),intersection_point(1),intersection_point(2));
+			    //printf("j:%d   t: %f   S: %f  %f  %f\n",j,t,intersection_point(0),intersection_point(1),intersection_point(2));
 
 			    if(t >= 0.0 && t <= 1.0
 			        && intersection_point(0) >= planes[j].x_min && intersection_point(0) <= planes[j].x_max
@@ -722,9 +727,9 @@ void VisualServoing::get_camera_data(const geometry_msgs::Pose::ConstPtr &daten)
 
         object_visible = true;
 
-        object_pose.x = rnd(daten->position.x,4);
-        object_pose.y = rnd(daten->position.y,4);
-        object_pose.z = rnd(daten->position.z,4);
+        object_pose.x = rnd(daten->position.x,4)-reference_tracking.x;
+        object_pose.y = rnd(daten->position.y,4)-reference_tracking.y;
+        object_pose.z = rnd(daten->position.z,4)-reference_tracking.z;
 
         m_temp = calc_rotation(180, 0, 180);
         rotate = calc_rotation(reference_tracking.rot_x, reference_tracking.rot_y, reference_tracking.rot_z);
@@ -747,7 +752,7 @@ void VisualServoing::get_camera_data(const geometry_msgs::Pose::ConstPtr &daten)
 
     }
 
-///*
+/*
 
     ausgabe_pose(object_pose);
     /*cout << "robo_pose.x = " << robo_pose.x << endl;
