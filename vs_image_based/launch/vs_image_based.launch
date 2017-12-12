@@ -284,7 +284,7 @@ Wenn der Manipulator sich auf der mobilen Plattform befindet, sollte dieser Wert
         <param name="error2_value" value="10000"/>
 	<param name="error3_value" value="10000"/>        	
         
-	<param name="enable_check_collision" value="1"/>
+	<param name="enable_check_collision" value="0"/>
 	
   </node>
 <!-- ****************************************************** -->

@@ -14,6 +14,11 @@ using namespace std;
 int VisualServoing::start_VS(string type){
 
     ros::NodeHandle node;
+    ros::NodeHandle pn("~");
+
+    if(!pn.hasParam(type + "/grasp_distance")){
+    	return 0;
+    }
 
     /*Initialisierung der Variablen und Parametern*/
     init_VisualServoing(type);
@@ -385,13 +390,13 @@ int VisualServoing::start_VS(string type){
             rate4.sleep();
     }
 
-
+    //Wartezeit, bis der Greifer sich öffnet
     ros::WallDuration(3.0).sleep();
 
     move_fingers(finger_client, 0);
     cart_client.call(switch2cart);
     ros::WallDuration(0.5).sleep();
-    ros::WallDuration(1.0).sleep();
+
 return 1;
 }
 

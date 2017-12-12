@@ -14,15 +14,16 @@ void execute(const vs_msgs::start_vsGoalConstPtr& goal, Server *as){
 
     a.r = vs.start_VS(goal->object_type);
     if(a.r == 1){
-    as->setSucceeded(a);
+    	as->setSucceeded(a);
     }
     else {
         switch(a.r){
+        	case 0: as->setAborted(a, "Fehler 0: AR-Tag-ID in object_parameter.yaml nicht gefunden"); break;
             case 2: as->setAborted(a, "Fehler 2"); break;
             case 3: as->setAborted(a, "Fehler 3"); break;
             case 4: as->setAborted(a, "Fehler 4"); break;
             case 5: as->setAborted(a, "Fehler 5"); break;
-            default: as->setAborted(a, "Fehler 0"); break;
+            default: as->setAborted(a, "unbekannter Fehler"); break;
         }
     }
 }
