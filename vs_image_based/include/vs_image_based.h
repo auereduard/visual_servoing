@@ -70,25 +70,12 @@ struct POSE{
 
 }robo_pose,object_pose,e,ausgang,reference_tracking,reference_grasp,u;
 
-struct tf_transformation{
-	double x,y,z,w;
-}tf_0,tf_1,tf_2,tf_3,tf_4,tf_5,tf_6;
-
-struct grasp{
-
-	double angle;
-	double grasp_distance;
-	bool is_possible;
-	int turn_direction;
-}variant[2];
-
 struct dh{
 
 	double alpha,a,d,theta;
 
 }i_1,i_2,i_3,i_4,i_5,i_6,i_7,i_8;
 
-//const int 9 = 9;
 struct plane{
 	double a,b,c,d;
 	double x_min, x_max;
@@ -96,52 +83,39 @@ struct plane{
 	double z_min, z_max;
 }planes[9];
 
-int anzahl = 0;
-
 tf::Vector3 VEKTOR_cam_data;
 tf::Vector3 VEKTOR_erg;
 tf::Vector3 robo_position_old;
 tf::Vector3 robo_position_new;
-Eigen::Vector3d v;
+
 tf::Matrix3x3 ROT_gripper2cam, ROT_root2gripper;
 std::vector<double> reference_values_tracking, reference_values_tcp;
-vector<string> joint_names_;
-vector<double> joint_values_;
-vector<double> start_joint_;
-vector<double> gripper_joints_;
-boost::posix_time::ptime start_time;
-boost::posix_time::time_duration diff;
+
 bool camera_data_received = false;
 bool robot_data_received = false;
 bool robot_angles_received = false;
-bool set_joints_received = false;
 bool object_visible = false;
-bool result_;
-string pause_;
-string robot_type_;
-bool robot_connected_;
+bool object_moved = true;
+bool robot_in_collision = false;
+
+double frequency = 8;
+double robot_basis_angle = 0; //35.8
+double camera_angle = -30.0;
 double control_precision = 0.003;
 double control_angle_precision = 1.0;
 double min_speed = 0.025;
 double min_angle_speed = 0.2;
-int connect_xyz = 2;
-bool object_moved = true;
-bool robot_in_collision = false;
-int counter1 = 0;
-int counter2 = 0;
+double object_grasp_distance = 0;
+
 int joint1 = 0.0;
 int joint2 = 0.0;
 int joint3 = 0.0;
 int joint4 = 0.0;
 int joint5 = 0.0;
 int joint6 = 0.0;
-double object_length = 200;//200.0;
-double object_width = 100;//100.0;
-double object_height = 39.0;//39.0;
-double object_grasp_angle = 0;
-double object_grasp_distance = 0;
-int finger1_position = 0;
-int finger2_position = 0;
+int connect_xyz = 1.5;
+int counter1 = 0;
+int counter2 = 0;
 
 int timer1_value = 3000;
 int timer2_value = 2000;
@@ -152,11 +126,6 @@ int error3_value = 10000;
 
 int enable_check_collision = 0;
 
-double frequency = 8;
-double robot_basis_angle = 0; //35.8
-double camera_angle = -30.0;
-
-
 /**************************************************************************
  *                         O B J E K T E                                  *
  **************************************************************************/
@@ -164,7 +133,6 @@ double camera_angle = -30.0;
 std_msgs::String str_msg;
 kinova_msgs::PoseVelocity pose_vel_msg;
 kinova_msgs::Start start_srv;
-kinova_msgs::Stop stop_srv;
 kinova_msgs::SetFingersPositionGoal goal;
 kinova_msgs::Switch2CartControl switch2cart;
 PID pd_tracking_x, pd_tracking_y, pd_tracking_z, pd_approach_x, pd_approach_y, pd_approach_z;

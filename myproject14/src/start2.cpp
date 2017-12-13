@@ -14,7 +14,7 @@ int main(int argc, char **argv){
 
     ros::init(argc, argv, "visual_servoing2");
 
-    Client client("mein_test_action", true);
+    Client client("vs_start_action", true);
     client.waitForServer();
     string eingabe;
     vs_msgs::start_vsGoal goal;

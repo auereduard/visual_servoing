@@ -199,22 +199,16 @@ Toleranzbereich für Abweichungen in der Orientierung
 
 "connect_xyz": 
 Bei einer Abweichung in x- oder y- Richtung 
-bewegt sich der Greiger auch immer nach oben, 
+entfernt sich der Greiger auch immer von dem Objekt, 
 um das Blickfeld zu vergrößern und das Objekt nicht zu verlieren.
 Bei 0 wird diese Funktion deaktiviert.
 Werte sollten nicht so groß gewählt werden. 
-Optimaler Wert ist 2.
-
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-"object_length", "object_width", "object_height":
-Dimensionen des quaderförmigen Objektes eingeben
-Einheiten sind mm
+Optimaler Wert ist 1.5.
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 "timer1_value":
-Wartezeit, nachdem alle linearen Abweichungen ausgeregelt sind.
+Wartezeit, nachdem alle Abweichungen ausgeregelt sind.
 Einheit: ms 
 einstellbare Intervale: 10ms
 
@@ -236,15 +230,6 @@ einstellbare Intervale: 10ms
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 "error2_value":
-Maximal erlaubte Zeit für die Rotation um 90° nach der Objektverfolgung.
-Wird nur dann verwendet, wenn eine Rotation notwendig ist.
-Wenn die Zeit vergangen ist, wird das Visual Servoing mit dem Fehlercode 3 verlassen.
-Einheit: ms 
-einstellbare Intervale: 10ms
-
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-"error3_value":
 Maximal erlaubte Zeit für die Bewegung zum Objekt.
 Wenn die Zeit vergangen ist, wird das Visual Servoing mit dem Fehlercode 4 verlassen.
 Einheit: ms 
@@ -252,7 +237,7 @@ einstellbare Intervale: 10ms
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-"error4_value":
+"error3_value":
 Maximal erlaubte Zeit für die Greiferbeweung mit dem Objekt.
 Wenn die Zeit vergangen ist, wird das Visual Servoing mit dem Fehlercode 5 verlassen.
 Einheit: ms 
@@ -273,10 +258,6 @@ Wenn der Manipulator sich auf der mobilen Plattform befindet, sollte dieser Wert
 	<param name="control_angle_precision" value="2"/>
 	<param name="connect_xyz" value="1.5"/> <!--1.5-->
 
-	<param name="object_length" value="200"/>
-	<param name="object_width" value="100"/>
-	<param name="object_height" value="39"/>
-	
 	<param name="timer1_value" value="30"/>       
 	<param name="timer2_value" value="50"/>
 
@@ -284,7 +265,7 @@ Wenn der Manipulator sich auf der mobilen Plattform befindet, sollte dieser Wert
         <param name="error2_value" value="10000"/>
 	<param name="error3_value" value="10000"/>        	
         
-	<param name="enable_check_collision" value="0"/>
+	<param name="enable_check_collision" value="1"/>
 	
   </node>
 <!-- ****************************************************** -->

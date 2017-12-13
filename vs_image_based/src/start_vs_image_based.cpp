@@ -34,7 +34,7 @@ int main(int argc, char** argv){
 
   ros::NodeHandle n;
 
-  Server server(n, "mein_test_action", boost::bind(&execute, _1, &server), false);
+  Server server(n, "vs_start_action", boost::bind(&execute, _1, &server), false);
 
   ros::WallDuration(10.0).sleep();
   print_start();

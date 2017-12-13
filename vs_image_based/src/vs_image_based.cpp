@@ -48,7 +48,6 @@ int VisualServoing::start_VS(string type){
     ros::ServiceClient start_client = node.serviceClient<kinova_msgs::Start>("/m1n6s200_driver/in/start");
     ros::ServiceClient stop_client = node.serviceClient<kinova_msgs::Stop>("/m1n6s200_driver/in/stop");
     ros::ServiceClient cart_client = node.serviceClient<kinova_msgs::Switch2CartControl>("/m1n6s200_driver/in/switch_to_cart_control");
-    ros::ServiceClient move_home_client = node.serviceClient<kinova_msgs::HomeArm>("/m1n6s200_driver/in/home_arm");
     ros::Subscriber sub_robo_angles = node.subscribe("/m1n6s200_driver/out/joint_angles", 1, &VisualServoing::robo_angles, this);
     ros::Subscriber sub_robo_pose = node.subscribe("/m1n6s200_driver/out/tool_pose", 1, &VisualServoing::robo_pose_data, this);
     ros::Subscriber sub_object_pose = node.subscribe("vs_cam_data_topic", 1, &VisualServoing::get_camera_data, this);
@@ -337,7 +336,6 @@ int VisualServoing::start_VS(string type){
             u.y = pd_approach_y.calc(e.y);
             u.z = pd_approach_z.calc(e.z);
 
-            robot_data_received = false;
         }
         pose_vel_msg.twist_linear_x = calc_control_speed(u.x, e.x,min_speed,control_precision);
         pose_vel_msg.twist_linear_y = calc_control_speed(u.y, e.y,min_speed,control_precision);
@@ -359,6 +357,7 @@ int VisualServoing::start_VS(string type){
         //Wenn nach error2_value-Sekunden nicht ausgeregelt -> Verlassen mit Fehlercode 3
         if(counter2 >= error2_value) return 3;
 
+        robot_data_received = false;
         ros::spinOnce();
         rate3.sleep();
 
@@ -390,10 +389,12 @@ int VisualServoing::start_VS(string type){
             rate4.sleep();
     }
 
-    //Wartezeit, bis der Greifer sich öffnet
-    ros::WallDuration(3.0).sleep();
+    /*	Warte 3s, bis der Greifer sich öffnet
+     * 	Komentare entfernen, wenn gewünscht.*/
+    //ros::WallDuration(3.0).sleep();
+    //move_fingers(finger_client, 0);
 
-    move_fingers(finger_client, 0);
+    //Wechsel zum kartesischen Raum
     cart_client.call(switch2cart);
     ros::WallDuration(0.5).sleep();
 
@@ -413,9 +414,6 @@ void VisualServoing::init_VisualServoing(string type){
 	pn.getParam("control_precision", control_precision);
 	pn.getParam("control_angle_precision", control_angle_precision);
 	pn.getParam("connect_xyz", connect_xyz);
-	pn.getParam("object_length", object_length);
-	pn.getParam("object_width", object_width);
-	pn.getParam("object_height", object_height);
 
 	pn.getParam("timer1_value", timer1_value);
 	pn.getParam("timer2_value", timer2_value);
@@ -821,12 +819,14 @@ void VisualServoing::reset_values(){
     Ergebnis ist die Fingerstellung in Grad (0°...6000°)
     0° -> Greifer komplett geöffnet
     6000° -> Greifer komplett geschlossen
+	Falls das Objekt schwer ist, sollte offset etwas vergrößert werden.
 */
 double VisualServoing::grasp_distance(const double &distance){
 
 	double result;
+	double offset = 1800;
 
-	result = (-36.3 * distance + 6750 + 1800);
+	result = (-36.3 * distance + 6750 + offset);
 
 	if(result > 6000) return 6000;
 	else if(result < 0) return 0;
